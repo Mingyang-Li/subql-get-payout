@@ -1,9 +1,3 @@
-type Account @entity {
-  id: ID!
-  sentTransfers: [Transfer] @derivedFrom(field: "from")
-  recievedTransfers: [Transfer] @derivedFrom(field: "to")
-}
-
 type Nominator @entity {
   id: ID!
   validators: [Validator] @derivedFrom(field: "id")
