@@ -26,3 +26,7 @@ export async function handleTransfer(event: SubstrateEvent): Promise<void> {
     transferInfo.amount = (amount as Balance).toBigInt();
     await transferInfo.save();
 }
+
+export async function handleEraStakingPayouts(event: SubstrateBlock): Promise<void> {
+    return;
+}
