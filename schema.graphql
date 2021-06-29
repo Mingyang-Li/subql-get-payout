@@ -4,9 +4,13 @@ type Account @entity {
   recievedTransfers: [Transfer] @derivedFrom(field: "to")
 }
 
-type Transfer @entity {
+type Nominator @entity {
   id: ID!
-  amount: BigInt
-  to: Account!
-  from: Account!
+  validators: [Validator] @derivedFrom(field: "id")
+}
+
+type Validator @entity {
+  id: ID!
+  eraPoints: Int!
+  eraPayout: string!
 }
