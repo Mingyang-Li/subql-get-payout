@@ -23,7 +23,7 @@ dist/
 # Maven
 target/
 dist/
-src/types
+
 
 # JetBrains IDE
 .idea/
