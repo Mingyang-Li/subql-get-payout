@@ -1,36 +1,33 @@
-type Nominator @entity {
-  id: ID!
-}
-
-type Validator @entity {
+type Account @entity {
   id: ID!
 }
 
 type NominatorValidator @entity {
-  id: ID!
-  nominatorId: Nominator!
-  validatorId: Validator!
+  id: ID! # hash of the combination of 3 below => pick a hash algorithm
+  era: Int!
+  nominator: Account!
+  validator: Account!
 }
 
 type Payout @entity {
   # era id + validator id
   id: ID!
-  eraId: string!
+  eraId: String!
   eraPayout: BigInt!
   totalValidatorRewardPoints: Int!
   remaining: Int!
-  nominatorStakingPayout: string!
-  validatorCommission: string!
-  claimed: boolean! # as a param
+  nominatorStakingPayout: String!
+  validatorCommission: String!
+  claimed: Boolean! # as a param
   claimedAtBlock: BigInt! # when claimed, value should be populated with block number
 }
 
 type PayoutDetail @entity {
   id: ID! #era id + account id (can be both nom or vali)
-  eraId: string!
-  accountId: string!
+  eraId: String!
+  accountId: String!
   amount: BigInt!
-  claimed: boolean!
+  claimed: Boolean!
   payout: Payout!
 }
 
