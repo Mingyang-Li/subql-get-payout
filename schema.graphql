@@ -7,6 +7,8 @@ type Payout @entity {
   id: ID!
   eraPayout: BigInt!
   eraStakingReward: Int!
+  from: Validator | Nominator
+  to: [Validator]! @derivedFrom(field: "id") | [Nominator]! @derivedFrom(field: "id")
 }
 
 type Validator @entity {
