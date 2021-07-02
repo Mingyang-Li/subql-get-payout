@@ -1,17 +1,36 @@
 type Nominator @entity {
   id: ID!
-  validators: [Validator]! @derivedFrom(field: "id")
-}
-
-type Payout @entity {
-  id: ID!
-  eraPayout: BigInt!
-  eraStakingReward: Int!
-  from: Validator | Nominator
-  to: [Validator]! @derivedFrom(field: "id") | [Nominator]! @derivedFrom(field: "id")
 }
 
 type Validator @entity {
   id: ID!
-  nominators: [Nominator]! @derivedFrom(field: "id")
 }
+
+type NominatorValidator @entity {
+  id: ID!
+  nominatorId: Nominator!
+  validatorId: Validator!
+}
+
+type Payout @entity {
+  # era id + validator id
+  id: ID!
+  eraId: string!
+  eraPayout: BigInt!
+  totalValidatorRewardPoints: Int!
+  remaining: Int!
+  nominatorStakingPayout: string!
+  validatorCommission: string!
+  claimed: boolean! # as a param
+  claimedAtBlock: BigInt! # when claimed, value should be populated with block number
+}
+
+type PayoutDetail @entity {
+  id: ID! #era id + account id (can be both nom or vali)
+  eraId: string!
+  accountId: string!
+  amount: BigInt!
+  claimed: boolean!
+  payout: Payout!
+}
+

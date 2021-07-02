@@ -1,0 +1,6 @@
+1. Given an era and a validator, retrieve total reward, nom exposure and val exposure (a structure) and commision rate
+2. Find events on the chain / ui => to check which block is each payout being claimed
+
+for val: commission + staking money percentage
+
+for nom: 
