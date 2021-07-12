@@ -6,7 +6,9 @@ export {Account} from "./Account"
 
 export {NominatorValidator} from "./NominatorValidator"
 
-export {Payout} from "./Payout"
+export {Era} from "./Era"
+
+export {ValidatorPayout} from "./ValidatorPayout"
 
 export {PayoutDetail} from "./PayoutDetail"
 

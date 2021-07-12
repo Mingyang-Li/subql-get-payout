@@ -2,15 +2,22 @@
 import {Entity} from "@subql/types";
 import assert from 'assert';
 
+
 export class NominatorValidator implements Entity {
+
     constructor(id: string) {
         this.id = id;
     }
 
+
     public id: string;
-    public era: number;
+
+    public eraId: string;
+
     public nominatorId: string;
+
     public validatorId: string;
+
 
     async save(): Promise<void>{
         let id = this.id;
@@ -31,6 +38,8 @@ export class NominatorValidator implements Entity {
             return;
         }
     }
+
+
 
     static create(record){
         let entity = new NominatorValidator(record.id);

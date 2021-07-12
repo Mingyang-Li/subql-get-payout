@@ -2,18 +2,24 @@
 import {Entity} from "@subql/types";
 import assert from 'assert';
 
+
 export class PayoutDetail implements Entity {
 
     constructor(id: string) {
         this.id = id;
     }
 
+
     public id: string;
+
     public eraId: string;
+
     public accountId: string;
-    public amount: bigint;
+
     public claimed: boolean;
+
     public payoutId: string;
+
 
     async save(): Promise<void>{
         let id = this.id;
@@ -34,6 +40,8 @@ export class PayoutDetail implements Entity {
             return;
         }
     }
+
+
 
     static create(record){
         let entity = new PayoutDetail(record.id);
