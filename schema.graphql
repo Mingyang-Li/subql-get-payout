@@ -32,4 +32,3 @@ type PayoutDetail @entity {
   claimed: Boolean!
   payout: ValidatorPayout!
 }
-
