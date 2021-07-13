@@ -34,7 +34,7 @@ export class NominatorValidator implements Entity {
         const record = await store.get('NominatorValidator', id.toString());
         if (record){
             return NominatorValidator.create(record);
-        }else{
+        } else {
             return;
         }
     }
