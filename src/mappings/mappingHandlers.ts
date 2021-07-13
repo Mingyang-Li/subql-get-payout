@@ -6,12 +6,18 @@ import { NominatorValidator } from '../types/models/NominatorValidator';
 import { ValidatorPayout } from '../types/models/ValidatorPayout';
 import { PayoutDetail } from '../types/models/PayoutDetail';
 
+type EraType = {
+    id: ID! # era idex.
+    startBlock: BigInt!
+    endBlock: BigInt
+}
+
 export async function handleRewards(event: SubstrateEvent, eraNumber: number, accountId: string): Promise<void> {
     const totalRewards = (await api.query.staking.erasRewardPoints<EraRewardPoints>(eraNumber));
     // get total reward points
     const totalRewardPoints = parseInt(totalRewards.total.toString());
     const rewardAmount = await api.query.staking.erasValidatorReward(eraNumber);
-    const totalRewardAmount = Number(rewardAmount.toString());
+    const totalRewardAmount = EraType(Number(rewardAmount.toString())};
 
 
     // destructure data, manipulate, update entity, send to db, gql will work
@@ -21,5 +27,6 @@ export async function handleRewards(event: SubstrateEvent, eraNumber: number, ac
     const nomStr = "noIdea";
     const ValStr = "alsoNoIdeea";
 
-    const nominatorValidator = new NominatorValidator(account.id)
+    const nominatorValidator = new NominatorValidator(account.id);
+    const Era =
     nominatorValidator}
