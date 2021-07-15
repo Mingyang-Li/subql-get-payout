@@ -25,6 +25,7 @@ services:
       - ./:/app
     command:
       - -f=/app
+      - --subquery-name=xxx
       - --local
 
   graphql-engine:

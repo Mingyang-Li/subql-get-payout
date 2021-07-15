@@ -19,31 +19,33 @@ export async function handleSession(event:SubstrateEvent) {
         }
     } = event;
 
-    logger.info(`SessionId: ${SessionIndex.toString()}, EraIndex: ${JSON.stringify(currentEra)}， currentBlock: ${currentBlock.toString()}`);
+    // logger.info(`SessionId: ${SessionIndex.toString()}, EraIndex: ${JSON.stringify(currentEra)}， currentBlock: ${currentBlock.toString()}`);
     ///
-
-
-    const thisEra = await Era.get(currentEra.toString());
+    if(currentEra.isNone) {
+      return;  
+    }
+    const currentEraNum = currentEra.unwrap().toNumber();
+    const thisEra = await Era.get(currentEraNum.toString());
 
 
 
     if (!thisEra){
-        const newEra: Era = new Era(currentEra.toString());
+        logger.info(`Era not found, need to add to DB`)
+
+
+        const newEra = new Era(currentEraNum.toString());
         newEra.startBlock = currentBlock;
         await newEra.save();
-        logger.log(`Create new Era : ${JSON.stringify(newEra)}`)
-        // update endblock of th
-        const previousEraIndex =  Number(currentEra)-1;
+        // // update endblock of th
+        const previousEraIndex =  currentEraNum-1;
         const previousEra = await Era.get(previousEraIndex.toString());
 
         if(previousEra){
-            previousEra.endBlock = BigInt(Number(currentBlock) - 1);
+            previousEra.endBlock = currentBlock - BigInt(1);
             await previousEra.save();
-            logger.log(`Update prvious Era : ${JSON.stringify(previousEra)}`)
         }
 
     }
-
 
     //Save
     // check if there's new era in DB, if not, create new era
