@@ -3,3 +3,6 @@
 3. We do this by checking if the era index of each session exists in the containerised local DB using .get() method from the Era entity.
 4. If the session is indeed a start of a new Era, we need to add the era entity into the DB by using .save(). 
 5. Last but not least, we also need to upate the endBlock field for the previous Era by (current block - 1). 
+
+
+1. For

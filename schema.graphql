@@ -1,13 +1,13 @@
-# type Account @entity {
-#   id: ID!
-# }
+type Account @entity {
+  id: ID!
+}
 
-# type NominatorValidator @entity {
-#   id: ID! # hash of the combination of 3 below => pick a hash algorithm
-#   era: Era!
-#   nominator: Account!
-#   validator: Account!
-# }
+type NominatorValidator @entity {
+  id: ID! # hash of the combination of 3 below => pick a hash algorithm
+  era: Era!
+  nominator: Account!
+  validator: Account!
+}
 
 type Era @entity {
   id: ID! # era index  1   6
@@ -15,20 +15,20 @@ type Era @entity {
   endBlock: BigInt  #59
 }
 
-# type ValidatorPayout @entity {
-#   # era id + validator id
-#   id: ID!
-#   eraId: String!
-#   eraPayout: BigInt!
-#   claimed: Boolean! # as a param
-#   claimedAtBlock: BigInt! # when claimed, value should be populated with block number
-# }
+type ValidatorPayout @entity {
+  # era id + validator id
+  id: ID!
+  eraId: String!
+  eraPayout: BigInt!
+  claimed: Boolean! # as a param
+  claimedAtBlock: BigInt! # when claimed, value should be populated with block number
+}
 
-# type PayoutDetail @entity {
-#   id: ID! #era id + account id (can be both nom or vali)
-#   era: Era!
-#   account: Account!
-#   # amount: BigInt!
-#   claimed: Boolean!
-#   payout: ValidatorPayout!
-# }
+type PayoutDetail @entity {
+  id: ID! #era id + account id (can be both nom or vali)
+  era: Era!
+  account: Account!
+  # amount: BigInt!
+  claimed: Boolean!
+  payout: ValidatorPayout!
+}
