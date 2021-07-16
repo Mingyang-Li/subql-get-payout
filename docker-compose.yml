@@ -27,7 +27,7 @@ services:
       - -f=/app
       - --subquery-name=xxx
       - --local
-      - --timeout = 1000
+      - --timeout=1000
 
   graphql-engine:
     image: onfinality/subql-query:latest
