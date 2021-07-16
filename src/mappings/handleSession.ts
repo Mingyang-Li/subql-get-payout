@@ -25,10 +25,11 @@ export async function handleSession(event:SubstrateEvent): Promise<void> {
 
     // create new era (when not found in db)
     if (!thisEra){
-        logger.info(`Era not found, need to add to DB`);
+        logger.info(`---------------❌ Era ${currentEraNum.toString()} not in DB, need to add to DB ---------------`);
         const newEra = new Era(currentEraNum.toString());
         newEra.startBlock = currentBlock;
-        await newEra.save(); 
+        await newEra.save();
+        logger.info(`--------------- ${await Era.get(currentEraNum.toString())!== null ? "✔️" : "❌"} Era ${currentEraNum.toString()} is now ${await Era.get(currentEraNum.toString()) ? 'In DB' : "NOT in DB"} ---------------`);
 
         // update endblock of th
         const previousEraIndex =  currentEraNum-1;
@@ -37,11 +38,13 @@ export async function handleSession(event:SubstrateEvent): Promise<void> {
             previousEra.endBlock = currentBlock - BigInt(1);
             await previousEra.save();
         }
+    } else {
+        logger.info(`---------------✔️ Era ${currentEraNum.toString()} in DB, no action needed ---------------`);
     }
     
     const validators = await api.query.session.validators();
     for (const validator of validators){
-        // logger.info(`----- validator: ${validator.toString()} at Era: ${currentEraNum}:`);
+        // logger.info(`-----  🚀validator: ${validator.toString()} at Era: ${currentEraNum}:`);
         const validatorExposure =  await api.query.staking.erasStakers(currentEraNum, validator.toString());
         const { total, own, others } = validatorExposure;
 
@@ -55,6 +58,7 @@ export async function handleSession(event:SubstrateEvent): Promise<void> {
             currNominatorValidator.nominatorId = nominator.who.toString();
             currNominatorValidator.validatorId = validator.toString();
             await currNominatorValidator.save();
+            logger.info(`---------------🚀 NominatorValidator ${nominatorValidatorId} saved to DB---------------`);
         }
 
         // Populate ValidatorPayout
@@ -65,6 +69,7 @@ export async function handleSession(event:SubstrateEvent): Promise<void> {
         currValidatorPayout.claimed = false; // placeholder, working it out
         currValidatorPayout.claimedAtBlock = currentBlock;
         await currValidatorPayout.save();
+        logger.info(`---------------🚀 ValidatorPayout ${sha256(`${currentEraNum.toString()}${validator.toString()}`)} saved to DB---------------`);
 
         // Populate PayoutDetail
         const currPayoutDetail = new PayoutDetail(sha256(`${currentEraNum.toString()}${validator.toString()}`));
@@ -73,5 +78,9 @@ export async function handleSession(event:SubstrateEvent): Promise<void> {
         currPayoutDetail.claimed = false; // placeholder
         currPayoutDetail.payoutId = currValidatorPayout.id;
         await currValidatorPayout.save();
+        logger.info(`---------------🚀 PayoutDetail ${sha256(`${currentEraNum.toString()}${validator.toString()}`)} saved to DB---------------`);
+        
+        // Finished all there is to do with one validator, logging to notify
+        logger.info(`---------------😃 Validator ${validator.toString()} loop done---------------`);
     }
 }
