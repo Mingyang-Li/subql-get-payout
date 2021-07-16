@@ -21,6 +21,7 @@ export async function handleSession(event:SubstrateEvent) {
     }
 
     const currentEraNum = currentEra.unwrap().toNumber();
+    const thisEra = currentEra.toString();
     
     const validators = await api.query.session.validators();
     for (const validator of validators){
@@ -41,66 +42,34 @@ export async function handleSession(event:SubstrateEvent) {
 
         // Populate ValidatorPayout
         const payoutRewards = await api.query.staking.erasValidatorReward(currentEraNum);
-        const currValidatorPayout = await new ValidatorPayout(`${currentEraNum.toString()}${validator.toString()}`);
+        const currValidatorPayout = new ValidatorPayout(sha256(`${currentEraNum.toString()}${validator.toString()}`));
         currValidatorPayout.eraId = currentEraNum.toString();
         currValidatorPayout.eraPayout = BigInt(payoutRewards.toString());
         currValidatorPayout.claimed = false; // placeholder, working it out
 
-        // logger.info(`------ nominators: ${JSON.stringify(exposure.others)}`);
+        // Populate PayoutDetail
+        const currPayoutDetail = new PayoutDetail(sha256(`${currentEraNum.toString()}${validator.toString()}`));
+        currPayoutDetail.eraId = currentEraNum.toString();
+        currPayoutDetail.accountId = validator.toString();
+        currPayoutDetail.claimed = false; // placeholder
+        currPayoutDetail.payoutId = currValidatorPayout.id;
+        currValidatorPayout.save();
     }
 
-
-    // when mapping, start from others field
-
-    // const exposureInfos = await api.query.staking.erasStakers.multi<Exposure>(validators.map(validator=>[currentEraNum, validator]));
-    // const exposure = await api.derive.staking.eraExposure(eraIndex);
-    // logger.info(`nominators: ${JSON.stringify(exposureInfos)}`);
-
-    // logger.info(`currentEraNum: ${currentEraNum}, thisEra: ${thisEra}`);
-
-    // type validatorsType = {
-    //     validatorId: string;
-    //     rewardPoints: number,
-    // }
-
     // create new era (when not found in db)
-    // if (!thisEra){
-    //     logger.info(`Era not found, need to add to DB`);
-    //     const newEra = new Era(currentEraNum.toString());
-    //     newEra.startBlock = currentBlock;
-    //     await newEra.save(); 
+    if (!thisEra){
+        logger.info(`Era not found, need to add to DB`);
+        const newEra = new Era(currentEraNum.toString());
+        newEra.startBlock = currentBlock;
+        await newEra.save(); 
 
-        // once saved, start updating nominators and validators for this era one by one
-        // for each reward point of the given era, calculate their actual amount staked against the id and store them into DB
-
-        // Get total reward points
-        // const totalRewards = (await api.query.staking.erasRewardPoints<EraRewardPoints>(currentEraNum));
-        // const totalRewardPoints = parseInt(totalRewards.total.toString());
-
-        // // Get the $$$ amount staked
-        // const rewardAmount = await api.query.staking.erasValidatorReward(currentEraNum);
-        // const totalRewardAmount = Number(rewardAmount.toString());
-
-        // for (let i=0; i<totalRewards.individual.size; i++) {
-        //     const { value, key } = totalRewards.individual[i];
-        //     const payout = await new ValidatorPayout(i.toString());
-        //     const isClaimed = 
-
-        //     // Crrating entity from here
-        //     payout.eraId = currentEraNum.toString();
-        //     payout.eraPayout = BigInt((parseInt(value.toString()) / totalRewardPoints) * 100 * totalRewardAmount);
-        //     payout.claimed =    
-        //     payout.claimedAtBlock = currentBlock;
-        // }
-      
-
-        // // update endblock of th
-    //     const previousEraIndex =  currentEraNum-1;
-    //     const previousEra = await Era.get(previousEraIndex.toString());
-    //     if(previousEra){
-    //         previousEra.endBlock = currentBlock - BigInt(1);
-    //         await previousEra.save();
-    //     }
-    // }
+        // update endblock of th
+        const previousEraIndex =  currentEraNum-1;
+        const previousEra = await Era.get(previousEraIndex.toString());
+        if(previousEra){
+            previousEra.endBlock = currentBlock - BigInt(1);
+            await previousEra.save();
+        }
+    }
 }
 
