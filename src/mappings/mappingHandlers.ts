@@ -1,16 +1,13 @@
 import { Era } from '../types/models/Era';
 import { SubstrateEvent } from "@subql/types";
-import { EraIndex, EraRewardPoints,Exposure  } from '@polkadot/types/interfaces';
-import { Account } from './../types/models/Account';
 import { NominatorValidator } from '../types/models/NominatorValidator';
 import { ValidatorPayout } from '../types/models/ValidatorPayout';
 import { PayoutDetail } from '../types/models/PayoutDetail';
+import { sha256 } from 'js-sha256';
 
 export async function handleSession(event:SubstrateEvent) {
     const currentEra = await api.query.staking.currentEra();
     const currentBlock =  event.block.block.header.number.toBigInt();
-
-
     // check it era is obtained. If not, era doesn't exists in db
     // const eraInDb: boolean = dbEraValue !== null ? true : false;
     const {
@@ -22,15 +19,36 @@ export async function handleSession(event:SubstrateEvent) {
     if(currentEra.isNone) {
       return;  
     }
+
     const currentEraNum = currentEra.unwrap().toNumber();
-    const thisEra = await Era.get(currentEraNum.toString());
-    // await getExposure(currentEra);
+    
     const validators = await api.query.session.validators();
     for (const validator of validators){
-        logger.info(`----- validator: ${validator.toString()} at Era: ${currentEraNum}:`);
-        const exposure =  await api.query.staking.erasStakers(currentEraNum,validator.toString())
-        logger.info(`------ nominators: ${JSON.stringify(exposure)}`);
+        // logger.info(`----- validator: ${validator.toString()} at Era: ${currentEraNum}:`);
+        const validatorExposure =  await api.query.staking.erasStakers(currentEraNum, validator.toString());
+        const { total, own, others } = validatorExposure;
+        others.forEach(nominator => {
+            // To create NominatorValidator, first we need to create a compisite ID based off its 3 attributes
+            const nominatorValidatorId: string = sha256(`${currentEraNum}${nominator.who.toString()}${validator.toString()}`);
+
+            // Once hashed ID is created, we can populate NominatorValidator
+            const currNominatorValidator = new NominatorValidator(nominatorValidatorId);
+            currNominatorValidator.eraId = currentEraNum.toString();
+            currNominatorValidator.nominatorId = nominator.who.toString();
+            currNominatorValidator.validatorId = validator.toString();
+            currNominatorValidator.save(); //Save to DB
+        });
+
+        // Populate ValidatorPayout
+        const payoutRewards = await api.query.staking.erasValidatorReward(currentEraNum);
+        const currValidatorPayout = await new ValidatorPayout(`${currentEraNum.toString()}${validator.toString()}`);
+        currValidatorPayout.eraId = currentEraNum.toString();
+        currValidatorPayout.eraPayout = BigInt(payoutRewards.toString());
+        currValidatorPayout.claimed = false; // placeholder, working it out
+
+        // logger.info(`------ nominators: ${JSON.stringify(exposure.others)}`);
     }
+
 
     // when mapping, start from others field
 
@@ -86,8 +104,3 @@ export async function handleSession(event:SubstrateEvent) {
     // }
 }
 
-
-async function getExposure(eraIndex) {
-
-
-}
