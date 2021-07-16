@@ -29,7 +29,7 @@ export async function handleSession(event:SubstrateEvent): Promise<void> {
         const newEra = new Era(currentEraNum.toString());
         newEra.startBlock = currentBlock;
         await newEra.save();
-        logger.info(`--------------- ${await Era.get(currentEraNum.toString())!== null ? "✔️" : "❌"} Era ${currentEraNum.toString()} is now ${await Era.get(currentEraNum.toString()) ? 'In DB' : "NOT in DB"} ---------------`);
+        logger.info(`--------------- ${thisEra!== null ? "✔️" : "❌"} Era ${currentEraNum.toString()} is now ${thisEra ? 'In DB' : "NOT in DB"} ---------------`);
 
         // update endblock of th
         const previousEraIndex =  currentEraNum-1;
