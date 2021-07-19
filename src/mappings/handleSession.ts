@@ -11,16 +11,10 @@ export async function handleSession(event:SubstrateEvent): Promise<void> {
     const currentBlock =  event.block.block.header.number.toBigInt();
     // check it era is obtained. If not, era doesn't exists in db
     // const eraInDb: boolean = dbEraValue !== null ? true : false;
-    const {
-        event: {
-            data: [SessionIndex]
-        }
-    } = event;
-
-
-    if(currentEra.isNone) {
-      return;  
-    }
+    // const { event: { data: [SessionIndex] } } = event;
+    const sessionIndex = await api.query.staking.erasStartSessionIndex;
+    logger.info(`---------------🌎 Session Index: ${JSON.stringify(sessionIndex)}\n`);
+    if(currentEra.isNone) return;
 
     const currentEraNum = currentEra.unwrap().toNumber();
 
@@ -32,6 +26,8 @@ export async function handleSession(event:SubstrateEvent): Promise<void> {
         logger.info(`---------------❌ Era ${currentEraNum.toString()} not in DB, need to add to DB ---------------`);
         const newEra = new Era(currentEraNum.toString());
         newEra.startBlock = currentBlock;
+        // update end block of prev 
+        
         await newEra.save();
 
         // check if Era is in DB after saving
@@ -136,3 +132,10 @@ export async function handleSession(event:SubstrateEvent): Promise<void> {
         logger.info(`---------------😃 Validator loop ${i + 1} done---------------`);
     }
 }
+
+
+// first get session  index
+// check if session is start of a new era using session index obtained
+// if it's a start of a new era, add Era into DB
+// After adding Era, check it's validators
+// for each validator, extract its exposure (htat has its nominators and rewards). 
