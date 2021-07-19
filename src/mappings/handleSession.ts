@@ -51,7 +51,7 @@ export async function handleSession(event:SubstrateEvent): Promise<void> {
     for (let i=0; i<validators.length; i++){
         const validator = validators[i];
         const validatorId = validator.toString();
-        logger.info(`---------------  🚀 Validator: ${validatorId} at Era: ${currentEraNum}---------------`);
+        logger.info(`---------------🚀 Validator: ${validatorId} at Era: ${currentEraNum}---------------`);
         const validatorExposure =  await api.query.staking.erasStakers(currentEraNum, validatorId);
         const { total, own, others } = validatorExposure;
 

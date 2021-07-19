@@ -18,7 +18,7 @@ export class ValidatorPayout implements Entity {
 
     public claimed: boolean;
 
-    public claimedAtBlock: bigint;
+    public claimedAtBlock?: bigint;
 
 
     async save(): Promise<void>{
