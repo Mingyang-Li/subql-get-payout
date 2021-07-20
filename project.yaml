@@ -11,9 +11,15 @@ dataSources:
     startBlock: 1000000
     mapping:
       handlers:
-        - handler: handleSession
-          kind: substrate/EventHandler
+        # - handler: handleSession
+        #   kind: substrate/EventHandler
+        #   filter:
+        #     module: session
+        #     method: NewSession
+        - handler: handleExtrinsic
+          kind: substrate/CallHandler
           filter:
-            module: session
-            method: NewSession
+            module: staking
+            method: payoutStakers
+            
 

@@ -1,5 +1,5 @@
-import { Account } from './../types/models/Account';
-import { SubstrateEvent } from "@subql/types";
+import { Account } from '../types/models/Account';
+import { SubstrateEvent, SubstrateExtrinsic } from "@subql/types";
 import { sha256 } from 'js-sha256';
 import { Era } from "../types/models/Era";
 import { NominatorValidator } from '../types/models/NominatorValidator';
@@ -27,7 +27,7 @@ export async function handleSession(event:SubstrateEvent): Promise<void> {
         const newEra = new Era(currentEraNum.toString());
         newEra.startBlock = currentBlock;
         // update end block of prev 
-        
+
         await newEra.save();
 
         // check if Era is in DB after saving
@@ -126,16 +126,27 @@ export async function handleSession(event:SubstrateEvent): Promise<void> {
             currPayoutDetail.payoutId = currValidatorPayout.id;
             await currValidatorPayout.save();
             logger.info(`---------------🚀 PayoutDetail ${payoutDetailId} saved to DB---------------`);
-        
         }
         // Finished all there is to do with one validator, logging to notify
-        logger.info(`---------------😃 Validator loop ${i + 1} done---------------`);
+        logger.info(`---------------😃 Validator loop ${i + 1} done---------------\n`);
     }
 }
-
 
 // first get session  index
 // check if session is start of a new era using session index obtained
 // if it's a start of a new era, add Era into DB
 // After adding Era, check it's validators
 // for each validator, extract its exposure (htat has its nominators and rewards). 
+
+export async function handleExtrinsic(substrateExtrinsic: SubstrateExtrinsic): Promise<void> {
+    const currentEra = await api.query.staking.currentEra();
+    const currentEraNum = currentEra.unwrap().toNumber();
+    const validator = api.query.staking.validators();
+    const validatorId = validator.toString();
+    const validatorExposure =  await api.query.staking.erasStakers(currentEraNum, validatorId);
+    const { others } = validatorExposure;
+    // logger.info(`nominators: ${others}`);
+    for (const nominator in others) {
+       logger.info(`nominator: ${nominator}`);
+    }
+}
