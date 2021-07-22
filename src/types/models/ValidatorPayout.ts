@@ -16,7 +16,7 @@ export class ValidatorPayout implements Entity {
 
     public eraPayout: bigint;
 
-    public claimed: boolean;
+    public claimed?: boolean;
 
     public claimedAtBlock?: bigint;
 

@@ -5,7 +5,7 @@ type Account @entity {
 
 type NominatorValidator @entity {
   id: ID! # hash of the combination of 3 below => pick a hash algorithm
-  era: Era!
+  era: Era! @index
   nominator: Account!
   validator: Account!
 }

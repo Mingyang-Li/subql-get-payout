@@ -40,6 +40,13 @@ export class NominatorValidator implements Entity {
     }
 
 
+    static async getByEraId(eraId: string): Promise<NominatorValidator[] | undefined>{
+      
+      const records = await store.getByField('NominatorValidator', 'eraId', eraId);
+      return records.map(record => NominatorValidator.create(record));
+      
+    }
+
 
     static create(record){
         let entity = new NominatorValidator(record.id);

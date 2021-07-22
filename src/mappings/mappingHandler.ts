@@ -24,30 +24,30 @@ export async function handleSession(event:SubstrateEvent): Promise<void> {
     // check if era is in DB is in DB before saving
     const currEraInDb = await Era.get(currentEraNum.toString());
     if (currEraInDb) {
-        return;
+        return
     }
 
     // create new era (when not found in db)
-  
-    logger.debug(`---------------❌ Era ${currentEraNum.toString()} not in DB, need to add to DB`);
-    const newEra = new Era(currentEraNum.toString());
-    newEra.startBlock = currentBlock;
-    // update end block of prev 
+    if (!currEraInDb){
+        logger.debug(`---------------❌ Era ${currentEraNum.toString()} not in DB, need to add to DB`);
+        const newEra = new Era(currentEraNum.toString());
+        newEra.startBlock = currentBlock;
+        // update end block of prev 
 
-    await newEra.save();
+        await newEra.save();
 
-    // check if Era is in DB after saving
-    const isInDb = await Era.get(currentEraNum.toString());
-    logger.debug(`--------------- Era ${currentEraNum.toString()} is now ${isInDb ? '✔️ In DB' : " ❌ NOT in DB"}`);
+        // check if Era is in DB after saving
+        const isInDb = await Era.get(currentEraNum.toString());
+        logger.debug(`--------------- Era ${currentEraNum.toString()} is now ${isInDb ? '✔️ In DB' : " ❌ NOT in DB"}`);
 
-    // update endblock of the previous era
-    const previousEraIndex =  currentEraNum-1;
-    const previousEra = await Era.get(previousEraIndex.toString());
-    if(previousEra){
-        previousEra.endBlock = currentBlock - BigInt(1);
-        await previousEra.save();
+        // update endblock of the previous era
+        const previousEraIndex =  currentEraNum-1;
+        const previousEra = await Era.get(previousEraIndex.toString());
+        if(previousEra){
+            previousEra.endBlock = currentBlock - BigInt(1);
+            await previousEra.save();
+        }
     }
-    
     
     // subql api now queries all validators of the current era
     const validators = await api.query.session.validators();
@@ -106,9 +106,8 @@ export async function handleSession(event:SubstrateEvent): Promise<void> {
         }
 
         // Populate ValidatorPayout
-        const prevEraNum = currentEraNum-1;
-        const validatorPayoutId = sha256(`${prevEraNum.toString()}${validatorId}`);
-        const payoutRewards = await api.query.staking.erasRewardPoints(prevEraNum);
+        const validatorPayoutId = sha256(`${currentEraNum.toString()}${validatorId}`);
+        const payoutRewards = await api.query.staking.erasRewardPoints(currentEraNum-1);
         // logger.debug(`💸 payoutRewards.total: ${payoutRewards.individual}`);
 
         // Check if currValidatorPayout in DB
@@ -117,19 +116,19 @@ export async function handleSession(event:SubstrateEvent): Promise<void> {
         if (!currValidatorPayoutinDb) {
             logger.debug(`---------------❌ ValidatorPayout ${validatorPayoutId} not in DB, creating new ValidatorPayout`);
             const currValidatorPayout = new ValidatorPayout(validatorPayoutId);
-            currValidatorPayout.eraId = prevEraNum.toString();
+            currValidatorPayout.eraId = currentEraNum.toString();
             currValidatorPayout.eraPayout = BigInt(payoutRewards.total.toString());
             currValidatorPayout.claimed = false; // placeholder, working it out
             currValidatorPayout.claimedAtBlock = null;
             await currValidatorPayout.save();
-            logger.debug(`---------------🚀 ValidatorPayout ${sha256(`${prevEraNum.toString()}${validatorId}`)} saved to DB`);
+            logger.debug(`---------------🚀 ValidatorPayout ${sha256(`${currentEraNum.toString()}${validatorId}`)} saved to DB`);
             
             // Since validatorPayout wasn't in DB, there was definitely no PayoutDetail
             // But now we have a new validatorPayout, we need to populate PayoutDetail
-            const payoutDetailId = sha256(`${prevEraNum.toString()}${validatorId}`);
+            const payoutDetailId = sha256(`${currentEraNum.toString()}${validatorId}`);
             logger.debug(`---------------❌ PayoutDetail ${payoutDetailId} not in DB, creating new PayoutDetail`);
             const currPayoutDetail = new PayoutDetail(payoutDetailId);
-            currPayoutDetail.eraId = prevEraNum.toString();
+            currPayoutDetail.eraId = currentEraNum.toString();
             currPayoutDetail.accountId = validatorId;
             currPayoutDetail.claimed = false; // placeholder
             currPayoutDetail.payoutId = currValidatorPayout.id;
@@ -140,6 +139,9 @@ export async function handleSession(event:SubstrateEvent): Promise<void> {
         logger.debug(`---------------😃 Validator loop ${i + 1} done---------------\n`);
     }
 }
+// 1. need to get validator's payout amount for each erA. when calucation, must use prev validator exposure
+// 2. Need to get prev validator's nominator ID for each iteration to make PayoutDetail
+
 
 // first get session index
 // check if session is start of a new era using session index obtained
