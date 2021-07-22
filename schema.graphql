@@ -22,7 +22,7 @@ type ValidatorPayout @entity {
   id: ID!
   eraId: String!
   eraPayout: BigInt!
-  claimed: Boolean! # as a param
+  claimed: Boolean # as a param
   claimedAtBlock: BigInt # when claimed, value should be populated with block number
 }
 
