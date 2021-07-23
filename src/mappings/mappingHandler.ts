@@ -70,9 +70,9 @@ export async function handleSession(event:SubstrateEvent): Promise<void> {
                 const nomAccount = new Account(nominatorId);
                 await nomAccount.save();
                 const nomAccountSaved = await Account.get(nominatorId);
-                if (nomAccountSaved) {
-                    // logger.debug(`---------------✔️ Account ${nominatorId} saved`);
-                }
+                // if (nomAccountSaved) {
+                //     logger.debug(`---------------✔️ Account ${nominatorId} saved`);
+                // }
             }
 
             // check if validator account is in DB
@@ -83,9 +83,9 @@ export async function handleSession(event:SubstrateEvent): Promise<void> {
                 const valAccount = new Account(validatorId);
                 await valAccount.save();
                 const valAccountInDb = await Account.get(validatorId);
-                if (valAccountInDb) {
-                    // logger.debug(`---------------✔️ Account ${validatorId} saved`);
-                }
+                // if (valAccountInDb) {
+                //     logger.debug(`---------------✔️ Account ${validatorId} saved`);
+                // }
             }
 
             // To create NominatorValidator, first we need to create a compisite ID based off its 3 attributes
