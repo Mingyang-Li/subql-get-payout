@@ -27,7 +27,7 @@ type ValidatorPayout @entity {
 }
 
 type PayoutDetail @entity {
-  id: ID! #era id + account id (can be both nom or vali)
+  id: ID! #era id + ID of validator from prev era, ID of the nominator from the iteration on the previous era
   era: Era!
   account: Account! # every nom and val
   # amount: BigInt!

@@ -6,6 +6,12 @@ import { NominatorValidator } from '../types/models/NominatorValidator';
 import { ValidatorPayout } from "../types/models/ValidatorPayout";
 import { PayoutDetail } from "../types/models/PayoutDetail";
 
+// first get session index
+// check if session is start of a new era using session index obtained
+// if it's a start of a new era, add Era into DB
+// After adding Era, check it's validators
+// for each validator, extract its exposure (htat has its nominators and rewards). 
+
 export async function handleSession(event:SubstrateEvent): Promise<void> {
     // we can extract session index from the event passed in, which is already filtered by yaml file by "session" as module and "NewSession" as the method
     // This helps us confirm that we only deal with new sessions
@@ -17,8 +23,8 @@ export async function handleSession(event:SubstrateEvent): Promise<void> {
     const currentEraNum = currentEra.unwrap().toNumber();
     // check it era is obtained. If not, era doesn't exists in db
 
-    logger.debug(`---------------🌎 Session Index: ${JSON.stringify(sessionIndex)}`);
-    logger.debug(`---------------⏰ currentEra: ${JSON.stringify(currentEra)}\n`)
+    // logger.debug(`---------------🌎 Session Index: ${JSON.stringify(sessionIndex)}`);
+    // logger.debug(`---------------⏰ currentEra: ${JSON.stringify(currentEra)}\n`)
     if(currentEra.isNone) return;
 
     // check if era is in DB is in DB before saving
@@ -29,16 +35,10 @@ export async function handleSession(event:SubstrateEvent): Promise<void> {
 
     // create new era (when not found in db)
     if (!currEraInDb){
-        logger.debug(`---------------❌ Era ${currentEraNum.toString()} not in DB, need to add to DB`);
+        // logger.debug(`---------------❌ Era ${currentEraNum.toString()} not in DB, need to add to DB`);
         const newEra = new Era(currentEraNum.toString());
         newEra.startBlock = currentBlock;
-        // update end block of prev 
-
         await newEra.save();
-
-        // check if Era is in DB after saving
-        const isInDb = await Era.get(currentEraNum.toString());
-        logger.debug(`--------------- Era ${currentEraNum.toString()} is now ${isInDb ? '✔️ In DB' : " ❌ NOT in DB"}`);
 
         // update endblock of the previous era
         const previousEraIndex =  currentEraNum-1;
@@ -49,12 +49,12 @@ export async function handleSession(event:SubstrateEvent): Promise<void> {
         }
     }
     
-    // subql api now queries all validators of the current era
+    // Use subql's polkadotjs api to query all validators of the current era
     const validators = await api.query.session.validators();
     for (let i=0; i<validators.length; i++){
         const validator = validators[i];
         const validatorId = validator.toString();
-        logger.debug(`---------------🚀 Validator: ${validatorId} at Era: ${currentEraNum}`);
+        // logger.debug(`---------------🚀 Validator: ${validatorId} at Era: ${currentEraNum}`);
         const validatorExposure =  await api.query.staking.erasStakers(currentEraNum, validatorId);
         const { total, own, others } = validatorExposure;
 
@@ -66,12 +66,12 @@ export async function handleSession(event:SubstrateEvent): Promise<void> {
             const nomAccountInDb = await Account.get(nominatorId);
             // If nominator account is not in DB, do create an account
             if (!nomAccountInDb) {
-                logger.debug(`---------------❌ Nominator Account ${nominatorId} not in DB, need to create new Account`);
+                // logger.debug(`---------------❌ Nominator Account ${nominatorId} not in DB, need to create new Account`);
                 const nomAccount = new Account(nominatorId);
                 await nomAccount.save();
                 const nomAccountSaved = await Account.get(nominatorId);
                 if (nomAccountSaved) {
-                    logger.debug(`---------------✔️ Account ${nominatorId} saved`);
+                    // logger.debug(`---------------✔️ Account ${nominatorId} saved`);
                 }
             }
 
@@ -79,12 +79,12 @@ export async function handleSession(event:SubstrateEvent): Promise<void> {
             const valAccountInDb = await Account.get(validatorId);
             // If validator account is not in DB, do create an account
             if (!valAccountInDb) {
-                logger.debug(`---------------❌ Validator Account ${validatorId} not in DB, need to create new Account`);
+                // logger.debug(`---------------❌ Validator Account ${validatorId} not in DB, need to create new Account`);
                 const valAccount = new Account(validatorId);
                 await valAccount.save();
                 const valAccountInDb = await Account.get(validatorId);
                 if (valAccountInDb) {
-                    logger.debug(`---------------✔️ Account ${validatorId} saved`);
+                    // logger.debug(`---------------✔️ Account ${validatorId} saved`);
                 }
             }
 
@@ -95,56 +95,94 @@ export async function handleSession(event:SubstrateEvent): Promise<void> {
             const nominatorValidatorInDb = await NominatorValidator.get(nominatorValidatorId);
             // if nominatorValidator not in DB, create NominatorValidator
             if (!nominatorValidatorInDb) {
-                logger.debug(`---------------❌ NominatorValidator ${nominatorValidatorId} not in DB, need to create new NominatorValidator`)
+                // logger.debug(`---------------❌ NominatorValidator ${nominatorValidatorId} not in DB, need to create new NominatorValidator`)
                 const currNominatorValidator = new NominatorValidator(nominatorValidatorId);
                 currNominatorValidator.eraId = currentEraNum.toString();
                 currNominatorValidator.nominatorId = nominatorId;
                 currNominatorValidator.validatorId = validatorId;
                 await currNominatorValidator.save();
-                logger.debug(`---------------🚀 NominatorValidator ${nominatorValidatorId} saved to DB`);
+                // logger.debug(`--------------✔️ NominatorValidator ${nominatorValidatorId} saved to DB`);
             }
         }
 
+        // 1. need to get validator's payout amount for each erA. when calucation, must use prev validator exposure
+        // 2. Need to get prev validator's nominator ID for each iteration to make PayoutDetail
+
         // Populate ValidatorPayout
-        const validatorPayoutId = sha256(`${currentEraNum.toString()}${validatorId}`);
-        const payoutRewards = await api.query.staking.erasRewardPoints(currentEraNum-1);
-        // logger.debug(`💸 payoutRewards.total: ${payoutRewards.individual}`);
+        // first, we need to realise that we are supposed to populate the previous era
+        const prevEra = currentEraNum - 1;
+        const validatorPayoutId = sha256(`${prevEra.toString()}${validatorId}`);
+        const totalRewards = await api.query.staking.erasRewardPoints(prevEra);
+        
+        // get total reward points
+        const totalRewardPoints = parseInt(totalRewards.total.toString());
+
+        // get the $$$ amount staked
+        const rewardAmount = await api.query.staking.erasValidatorReward(prevEra);
+        const totalRewardAmount = Number(rewardAmount.toString());
+
+        logger.info(`totalRewards.individual: ${totalRewards.individual.toString()}`);
 
         // Check if currValidatorPayout in DB
         const currValidatorPayoutinDb = await ValidatorPayout.get(validatorPayoutId);
-        // If validatorPayout not in DB, create a new record
+        // If validatorPayout not in DB, create a a list of new records for all nominators for each validator
         if (!currValidatorPayoutinDb) {
-            logger.debug(`---------------❌ ValidatorPayout ${validatorPayoutId} not in DB, creating new ValidatorPayout`);
-            const currValidatorPayout = new ValidatorPayout(validatorPayoutId);
-            currValidatorPayout.eraId = currentEraNum.toString();
-            currValidatorPayout.eraPayout = BigInt(payoutRewards.total.toString());
-            currValidatorPayout.claimed = false; // placeholder, working it out
-            currValidatorPayout.claimedAtBlock = null;
-            await currValidatorPayout.save();
-            logger.debug(`---------------🚀 ValidatorPayout ${sha256(`${currentEraNum.toString()}${validatorId}`)} saved to DB`);
-            
-            // Since validatorPayout wasn't in DB, there was definitely no PayoutDetail
-            // But now we have a new validatorPayout, we need to populate PayoutDetail
-            const payoutDetailId = sha256(`${currentEraNum.toString()}${validatorId}`);
-            logger.debug(`---------------❌ PayoutDetail ${payoutDetailId} not in DB, creating new PayoutDetail`);
-            const currPayoutDetail = new PayoutDetail(payoutDetailId);
-            currPayoutDetail.eraId = currentEraNum.toString();
-            currPayoutDetail.accountId = validatorId;
-            currPayoutDetail.claimed = false; // placeholder
-            currPayoutDetail.payoutId = currValidatorPayout.id;
-            await currValidatorPayout.save();
-            logger.debug(`---------------🚀 PayoutDetail ${payoutDetailId} saved to DB`);
+            totalRewards.individual.forEach((value, key) => {
+                // First, populate ValidatorPayout into DB, we need an ID first
+
+                // The ID for each PayoutDetail needs to be made up of: 
+                // 1. ID from the previous era
+                // 2. ID of validator from prev era
+                // 3. ID of the nominator from the iteration on the previous era
+                const currValidatorPayoutId = sha256(prevEra.toString() + key.toString());
+
+                // Instantiate ValidatorPayout with the ID from above
+                const currValidatorPayout = new ValidatorPayout(currValidatorPayoutId);
+                currValidatorPayout.eraId = prevEra.toString();
+                currValidatorPayout.eraPayout = BigInt((parseInt(value.toString()) / totalRewardPoints) * 100 * totalRewardAmount);
+                currValidatorPayout.claimed = false; // placeholder as false due to time constraint
+                currValidatorPayout.claimedAtBlock = null;
+                // Immediately invoke an async function to save currValidatorPayout to DB
+                (async () => {
+                    await currValidatorPayout.save();
+                })();
+
+                // Testing if currValidatorPayout is saved to DD
+                const currValidatorPayoutInDb = (async () => await ValidatorPayout.get(currValidatorPayoutId))();
+                if (currValidatorPayoutInDb) {
+                    logger.info(`---------------🚀 currValidatorPayout ${currValidatorPayoutId} saved to DB`);
+                } else {
+                    logger.info(`---------------❌ currValidatorPayout ${currValidatorPayoutId} saved to DB`);
+                }
+
+                // Since ValidatorPayout wasn't in DB, there was definitely no PayoutDetail equivalent to the ValidatorPayout
+                // But now we have a new validatorPayout, we need to populate PayoutDetail accordingly
+
+                // The ID for each PayoutDetail needs to be made up of: 
+                // 1. ID from the previous era
+                // 2. ID of validator from prev era
+                // 3. ID of the nominator from the iteration on the previous era
+                const currPayoutDetailId = sha256(prevEra.toString() + validatorId + key.toString());
+                const currPayoutDetail = new PayoutDetail(currPayoutDetailId);
+                currPayoutDetail.eraId = prevEra.toString();
+                currPayoutDetail.accountId = key.toString();
+                currPayoutDetail.claimed = false;
+                currPayoutDetail.payoutId = currPayoutDetailId;
+                // Immediately invoke an async function to save currPayoutDetail to DB
+                (async() => {
+                    await currPayoutDetail.save();
+                })();
+
+                // Testing if currValidatorPayout is saved to DD
+                const currPayoutDetailInDb = (async () => await PayoutDetail.get(currPayoutDetailId))();
+                if (currValidatorPayoutInDb) {
+                    logger.info(`---------------🚀 currPayoutDetail ${currPayoutDetailInDb} saved to DB`);
+                } else {
+                    logger.info(`---------------❌ currPayoutDetail ${currPayoutDetailInDb} saved to DB`);
+                }
+            });
         }
         // Finished all there is to do with one validator, logging to notify
         logger.debug(`---------------😃 Validator loop ${i + 1} done---------------\n`);
     }
 }
-// 1. need to get validator's payout amount for each erA. when calucation, must use prev validator exposure
-// 2. Need to get prev validator's nominator ID for each iteration to make PayoutDetail
-
-
-// first get session index
-// check if session is start of a new era using session index obtained
-// if it's a start of a new era, add Era into DB
-// After adding Era, check it's validators
-// for each validator, extract its exposure (htat has its nominators and rewards). 

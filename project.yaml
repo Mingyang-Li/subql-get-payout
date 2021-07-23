@@ -16,10 +16,3 @@ dataSources:
           filter:
             module: session
             method: NewSession
-        # - handler: handleExtrinsic
-        #   kind: substrate/CallHandler
-        #   filter:
-        #     module: staking
-        #     method: payoutStakers
-            
-
