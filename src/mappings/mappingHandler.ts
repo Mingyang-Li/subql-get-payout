@@ -6,11 +6,11 @@ import { NominatorValidator } from '../types/models/NominatorValidator';
 import { ValidatorPayout } from "../types/models/ValidatorPayout";
 import { PayoutDetail } from "../types/models/PayoutDetail";
 
-// first get session index
-// check if session is start of a new era using session index obtained
-// if it's a start of a new era, add Era into DB
+// First, we need to get session index
+// Then check if session is start of a new era using session index obtained
+// If it's a start of a new era, add Era into DB
 // After adding Era, check it's validators
-// for each validator, extract its exposure (htat has its nominators and rewards). 
+// For each validator, extract its exposure (htat has its nominators and rewards). 
 
 export async function handleSession(event:SubstrateEvent): Promise<void> {
     // we can extract session index from the event passed in, which is already filtered by yaml file by "session" as module and "NewSession" as the method
@@ -144,7 +144,11 @@ export async function handleSession(event:SubstrateEvent): Promise<void> {
                 currValidatorPayout.claimedAtBlock = null;
                 // Immediately invoke an async function to save currValidatorPayout to DB
                 (async () => {
-                    await currValidatorPayout.save();
+                    try {
+                        await currValidatorPayout.save();
+                    } catch (error) {
+                        logger.error(`------- ❌ currValidatorPayout saving error: ${error}`);
+                    }
                 })();
 
                 // Testing if currValidatorPayout is saved to DD
@@ -169,12 +173,23 @@ export async function handleSession(event:SubstrateEvent): Promise<void> {
                 currPayoutDetail.claimed = false;
                 currPayoutDetail.payoutId = currPayoutDetailId;
                 // Immediately invoke an async function to save currPayoutDetail to DB
-                (async() => {
-                    await currPayoutDetail.save();
+                (async () => {
+                    try {
+                        await currPayoutDetail.save();
+                    } catch (error) {
+                        logger.error(`------- ❌ currPayoutDetail saving error: ${error}`);
+                    }
                 })();
 
+
                 // Testing if currValidatorPayout is saved to DD
-                const currPayoutDetailInDb = (async () => await PayoutDetail.get(currPayoutDetailId))();
+                const currPayoutDetailInDb = (async () => {
+                    try {
+                        await PayoutDetail.get(currPayoutDetailId);
+                    } catch (error) {
+                        logger.error(`------- ❌ currPayoutDetailInDb checking error: ${error}`);
+                    }
+                })();
                 if (currValidatorPayoutInDb) {
                     logger.info(`---------------🚀 currPayoutDetail ${currPayoutDetailInDb} saved to DB`);
                 } else {
